@@ -16,3 +16,12 @@ export async function GET() {
 
   return NextResponse.json({ data: { syncStates, dqstwr001Exists: !!project } });
 }
+
+export async function DELETE() {
+  const session = await auth();
+  if (!session?.user?.id || !isAdminRole(session.user.role)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+  }
+  await prisma.integrationSyncState.deleteMany();
+  return NextResponse.json({ data: { cleared: true } });
+}
