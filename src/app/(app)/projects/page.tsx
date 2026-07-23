@@ -1,6 +1,7 @@
 import { FolderKanban } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { ProjectCard } from "@/components/projects/project-card";
+import { ProjectsToolbar } from "@/components/projects/projects-toolbar";
 import { getProjectSummaries } from "@/lib/get-project-summaries";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +12,9 @@ export default async function ProjectsPage() {
   return (
     <div className="space-y-4">
       <PageHeader title="Projects" subtitle="Manage all active and completed projects" />
+      <div className="flex justify-end">
+        <ProjectsToolbar />
+      </div>
 
       {cards.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/50 py-24 text-center">
@@ -19,7 +23,7 @@ export default async function ProjectsPage() {
           </div>
           <h2 className="text-lg font-semibold">No projects yet</h2>
           <p className="text-sm text-muted-foreground mt-1 max-w-sm">
-            Run `npm run db:seed` to populate demo projects.
+            Click &quot;New Project&quot; above to create your first one.
           </p>
         </div>
       ) : (
