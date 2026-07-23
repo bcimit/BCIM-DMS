@@ -132,6 +132,7 @@ export async function runErpSync(): Promise<{
   try {
     const since = await getSince("work-orders");
     const workOrders = await fetchApprovedWorkOrders(since);
+    console.log(`ERP sync: fetched ${workOrders.length} work order(s) since ${since.toISOString()}`);
     for (const wo of workOrders) {
       const { project, created: projectCreated } = await getOrCreateProject(wo.projectCode);
       if (projectCreated) projectsCreated.push(project.code);
@@ -163,6 +164,7 @@ export async function runErpSync(): Promise<{
   try {
     const since = await getSince("purchase-orders");
     const purchaseOrders = await fetchApprovedPurchaseOrders(since);
+    console.log(`ERP sync: fetched ${purchaseOrders.length} purchase order(s) since ${since.toISOString()}`);
     for (const po of purchaseOrders) {
       const { project, created: projectCreated } = await getOrCreateProject(po.projectCode);
       if (projectCreated) projectsCreated.push(project.code);
@@ -196,6 +198,7 @@ export async function runErpSync(): Promise<{
   try {
     const since = await getSince("mrs");
     const mrsList = await fetchApprovedMrs(since);
+    console.log(`ERP sync: fetched ${mrsList.length} MRS since ${since.toISOString()}`);
     for (const mrs of mrsList) {
       const { project, created: projectCreated } = await getOrCreateProject(mrs.projectCode, mrs.projectName);
       if (projectCreated) projectsCreated.push(project.code);
