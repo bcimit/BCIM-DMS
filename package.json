@@ -5,10 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "prisma migrate deploy && next start",
     "lint": "eslint",
     "db:seed": "tsx prisma/seed.ts",
-    "create-admin": "tsx prisma/create-admin.ts"
+    "create-admin": "tsx prisma/create-admin.ts",
+    "postinstall": "prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
