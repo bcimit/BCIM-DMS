@@ -1,15 +1,33 @@
-import { Button } from "@/components/ui/button";
+"use client";
 
-export function StorageUsage({
-  usedGb = 136.5,
-  totalGb = 200,
-}: {
-  usedGb?: number;
-  totalGb?: number;
-}) {
-  const pct = Math.round((usedGb / totalGb) * 100);
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useStorageQuota } from "@/hooks/use-storage-quota";
+
+function formatGb(bytes: number) {
+  return (bytes / 1024 ** 3).toFixed(1);
+}
+
+export function StorageUsage() {
+  const { data, isLoading, isError } = useStorageQuota();
+
+  if (isLoading) {
+    return <Skeleton className="h-[220px] rounded-xl" />;
+  }
+
+  if (isError || !data) {
+    return (
+      <div className="rounded-xl bg-sidebar-accent/40 border border-sidebar-border p-4">
+        <p className="text-xs font-medium text-sidebar-foreground/70">Storage Usage</p>
+        <p className="text-xs text-sidebar-foreground/50 mt-2">Unable to load storage data</p>
+      </div>
+    );
+  }
+
+  const hasFixedQuota = data.total > 0;
+  const pct = hasFixedQuota ? Math.round((data.used / data.total) * 100) : 0;
   const circumference = 2 * Math.PI * 42;
-  const dash = (pct / 100) * circumference;
+  const dash = hasFixedQuota ? (pct / 100) * circumference : circumference * 0.02;
 
   return (
     <div className="rounded-xl bg-sidebar-accent/40 border border-sidebar-border p-4">
@@ -43,12 +61,16 @@ export function StorageUsage({
           </defs>
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-semibold text-sidebar-foreground">{pct}%</span>
-          <span className="text-[10px] text-sidebar-foreground/60">Used</span>
+          <span className="text-xl font-semibold text-sidebar-foreground">
+            {hasFixedQuota ? `${pct}%` : formatGb(data.used)}
+          </span>
+          <span className="text-[10px] text-sidebar-foreground/60">
+            {hasFixedQuota ? "Used" : "GB Used"}
+          </span>
         </div>
       </div>
       <p className="text-center text-xs text-sidebar-foreground/60 mt-3">
-        {usedGb} GB / {totalGb} GB
+        {hasFixedQuota ? `${formatGb(data.used)} GB / ${formatGb(data.total)} GB` : "SharePoint pooled storage"}
       </p>
       <Button
         size="sm"

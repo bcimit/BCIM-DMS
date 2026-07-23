@@ -15,6 +15,7 @@ export type DocumentDetail = {
   area: string | null;
   sizeBytes: number;
   fileUrl: string;
+  storageItemId: string | null;
   tags: string[];
   createdAt: string;
   updatedAt: string;

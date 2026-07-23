@@ -1,20 +1,32 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { AnimatePresence, motion } from "framer-motion";
-import { X, Download, Eye, ChevronDown, FileStack } from "lucide-react";
+import { X, Download, Eye, ChevronDown, FileStack, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocIcon, docTypeLabel } from "@/components/documents/doc-icon";
 import { StatusBadge } from "@/components/documents/status-badge";
 import { useDocument } from "@/hooks/use-document";
 import { formatBytes, formatDateTime } from "@/lib/format";
-import { PdfPreview } from "@/components/documents/pdf-preview";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+const PdfPreview = dynamic(
+  () => import("@/components/documents/pdf-preview").then((mod) => mod.PdfPreview),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="rounded-xl border border-border bg-muted/40 aspect-[4/3] flex items-center justify-center text-muted-foreground">
+        <Loader2 className="size-6 animate-spin" />
+      </div>
+    ),
+  }
+);
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -96,7 +108,9 @@ export function DocumentDetailPanel({
                       Preview
                     </p>
                     {doc.name.toLowerCase().endsWith(".pdf") ? (
-                      <PdfPreview fileUrl={doc.fileUrl} />
+                      <PdfPreview
+                        fileUrl={doc.storageItemId ? `/api/documents/${doc.id}/content` : doc.fileUrl}
+                      />
                     ) : (
                       <div className="rounded-xl border border-border bg-muted/40 aspect-[4/3] flex flex-col items-center justify-center gap-2 text-muted-foreground">
                         <DocIcon fileName={doc.name} className="size-12" />
@@ -127,7 +141,10 @@ export function DocumentDetailPanel({
             {doc && (
               <div className="flex items-center gap-2 p-4 border-t border-border/60">
                 <Button className="flex-1" variant="default" asChild>
-                  <a href={doc.fileUrl} download={doc.name}>
+                  <a
+                    href={doc.storageItemId ? `/api/documents/${doc.id}/content` : doc.fileUrl}
+                    download={doc.name}
+                  >
                     <Download className="size-4" /> Download
                   </a>
                 </Button>

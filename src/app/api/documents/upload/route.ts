@@ -1,13 +1,9 @@
-import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { inferDocumentType } from "@/lib/infer-document-type";
+import { uploadToSharePoint } from "@/lib/graph";
 import { ActivityAction, Discipline, DocumentStatus } from "@/generated/prisma/client";
-
-const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads");
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -34,14 +30,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Uploader user not found" }, { status: 404 });
   }
 
-  await mkdir(UPLOAD_DIR, { recursive: true });
-
-  const ext = file.name.split(".").pop() ?? "bin";
-  const storedName = `${randomUUID()}.${ext}`;
   const bytes = Buffer.from(await file.arrayBuffer());
-  await writeFile(path.join(UPLOAD_DIR, storedName), bytes);
 
-  const fileUrl = `/uploads/${storedName}`;
+  let uploaded;
+  try {
+    uploaded = await uploadToSharePoint(file.name, file.type, bytes);
+  } catch (e) {
+    console.error("SharePoint upload failed:", e);
+    return NextResponse.json({ error: "Failed to upload file to SharePoint" }, { status: 502 });
+  }
+
+  const fileUrl = uploaded.webUrl;
   const documentNo = `UPL-${Date.now().toString(36).toUpperCase()}`;
 
   const document = await prisma.document.create({
@@ -54,6 +53,7 @@ export async function POST(req: NextRequest) {
       version: "V1",
       sizeBytes: file.size,
       fileUrl,
+      storageItemId: uploaded.itemId,
       projectId,
       folderId: typeof folderId === "string" && folderId ? folderId : null,
       uploadedById: uploader.id,
@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
       notes: "Initial upload",
       sizeBytes: file.size,
       fileUrl,
+      storageItemId: uploaded.itemId,
       uploadedById: uploader.id,
     },
   });
