@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { inferDocumentType } from "@/lib/infer-document-type";
 import { uploadToSharePoint } from "@/lib/graph";
-import { ActivityAction, Discipline, DocumentStatus } from "@/generated/prisma/client";
+import { ActivityAction, Discipline, DocumentStatus, DocumentType } from "@/generated/prisma/client";
 
 export async function POST(req: NextRequest) {
   const session = await auth();
@@ -16,9 +16,14 @@ export async function POST(req: NextRequest) {
   const projectId = form.get("projectId");
   const folderId = form.get("folderId");
   const discipline = form.get("discipline");
+  const typeOverride = form.get("type");
 
   if (!(file instanceof File) || typeof projectId !== "string" || typeof discipline !== "string") {
     return NextResponse.json({ error: "file, projectId and discipline are required" }, { status: 400 });
+  }
+
+  if (typeof typeOverride === "string" && !Object.values(DocumentType).includes(typeOverride as DocumentType)) {
+    return NextResponse.json({ error: "Invalid document type" }, { status: 400 });
   }
 
   if (!Object.values(Discipline).includes(discipline as Discipline)) {
@@ -47,7 +52,7 @@ export async function POST(req: NextRequest) {
     data: {
       documentNo,
       name: file.name,
-      type: inferDocumentType(file.name),
+      type: typeof typeOverride === "string" ? (typeOverride as DocumentType) : inferDocumentType(file.name),
       discipline: discipline as Discipline,
       status: DocumentStatus.DRAFT,
       version: "V1",

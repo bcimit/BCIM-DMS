@@ -12,6 +12,8 @@ import {
   Trash2,
   MoreVertical,
 } from "lucide-react";
+import { toast } from "sonner";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,7 +23,31 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-export function RowActionsMenu({ onPreview }: { onPreview: () => void }) {
+export function RowActionsMenu({
+  onPreview,
+  documentId,
+  documentName,
+}: {
+  onPreview: () => void;
+  documentId: string;
+  documentName: string;
+}) {
+  const queryClient = useQueryClient();
+
+  const deleteMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/documents/${documentId}/delete`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to delete document");
+    },
+    onSuccess: () => {
+      toast.success(`"${documentName}" moved to Recycle Bin`);
+      queryClient.invalidateQueries({ queryKey: ["documents"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+      queryClient.invalidateQueries({ queryKey: ["activities"] });
+    },
+    onError: () => toast.error("Failed to delete document"),
+  });
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -61,7 +87,7 @@ export function RowActionsMenu({ onPreview }: { onPreview: () => void }) {
           <ShieldCheck /> Approval History
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem className="text-destructive">
+        <DropdownMenuItem className="text-destructive" onSelect={() => deleteMutation.mutate()}>
           <Trash2 /> Delete
         </DropdownMenuItem>
       </DropdownMenuContent>

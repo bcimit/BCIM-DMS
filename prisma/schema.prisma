@@ -194,6 +194,7 @@ model Document {
   storageItemId  String?
   thumbnailUrl   String?
   tags           String[]       @default([])
+  deletedAt      DateTime?
 
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)

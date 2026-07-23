@@ -1,5 +1,19 @@
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { FilteredDocumentPage } from "@/components/documents/filtered-document-page";
 
-export default function BoqPage() {
-  return <ComingSoon title="Bill of Quantities" subtitle="BOQ line items and cost breakdowns" />;
+export const dynamic = "force-dynamic";
+
+export default async function BoqPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ project?: string }>;
+}) {
+  const { project } = await searchParams;
+  return (
+    <FilteredDocumentPage
+      title="Bill of Quantities"
+      subtitle="BOQ line items and cost breakdowns"
+      projectIdParam={project}
+      lockedType="BOQ"
+    />
+  );
 }

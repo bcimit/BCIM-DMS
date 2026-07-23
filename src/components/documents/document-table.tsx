@@ -91,7 +91,7 @@ export function DocumentTable({
               </TableCell>
               <TableCell className="text-muted-foreground">{formatDate(doc.updatedAt)}</TableCell>
               <TableCell className="text-right">
-                <RowActionsMenu onPreview={() => onRowClick(doc)} />
+                <RowActionsMenu onPreview={() => onRowClick(doc)} documentId={doc.id} documentName={doc.name} />
               </TableCell>
             </TableRow>
           ))}

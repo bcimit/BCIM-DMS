@@ -51,6 +51,8 @@ export function FiltersBar({
   onDisciplineChange,
   onSearchChange,
   onViewChange,
+  hideType,
+  hideDiscipline,
 }: {
   type?: string;
   status?: string;
@@ -62,13 +64,17 @@ export function FiltersBar({
   onDisciplineChange: (v?: string) => void;
   onSearchChange: (v: string) => void;
   onViewChange: (v: ViewMode) => void;
+  hideType?: boolean;
+  hideDiscipline?: boolean;
 }) {
   return (
     <div className="flex flex-col sm:flex-row sm:items-center gap-2">
       <div className="flex flex-wrap gap-2 flex-1">
-        <FilterSelect placeholder="All Types" options={TYPES} value={type} onChange={onTypeChange} />
+        {!hideType && <FilterSelect placeholder="All Types" options={TYPES} value={type} onChange={onTypeChange} />}
         <FilterSelect placeholder="All Status" options={STATUSES} value={status} onChange={onStatusChange} />
-        <FilterSelect placeholder="All Disciplines" options={DISCIPLINES} value={discipline} onChange={onDisciplineChange} />
+        {!hideDiscipline && (
+          <FilterSelect placeholder="All Disciplines" options={DISCIPLINES} value={discipline} onChange={onDisciplineChange} />
+        )}
       </div>
 
       <div className="relative flex-1 sm:max-w-xs">

@@ -47,7 +47,7 @@ export function DocumentGrid({
         >
           <div className="flex items-start justify-between">
             <DocIcon fileName={doc.name} className="size-11" />
-            <RowActionsMenu onPreview={() => onCardClick(doc)} />
+            <RowActionsMenu onPreview={() => onCardClick(doc)} documentId={doc.id} documentName={doc.name} />
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium truncate group-hover:text-primary transition-colors">{doc.name}</p>

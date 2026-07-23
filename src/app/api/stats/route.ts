@@ -10,7 +10,7 @@ function startOfMonth() {
 export async function GET(req: NextRequest) {
   const projectId = req.nextUrl.searchParams.get("projectId") ?? undefined;
   const monthStart = startOfMonth();
-  const base = projectId ? { projectId } : {};
+  const base = { deletedAt: null, ...(projectId ? { projectId } : {}) };
 
   const [
     totalDocuments,

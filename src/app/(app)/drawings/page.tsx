@@ -1,5 +1,19 @@
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { FilteredDocumentPage } from "@/components/documents/filtered-document-page";
 
-export default function DrawingsPage() {
-  return <ComingSoon title="Drawings & Plans" subtitle="Technical drawings and construction plans" />;
+export const dynamic = "force-dynamic";
+
+export default async function DrawingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ project?: string }>;
+}) {
+  const { project } = await searchParams;
+  return (
+    <FilteredDocumentPage
+      title="Drawings & Plans"
+      subtitle="Technical drawings and construction plans"
+      projectIdParam={project}
+      lockedType="DRAWING,CAD_DRAWING"
+    />
+  );
 }

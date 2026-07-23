@@ -10,16 +10,19 @@ export async function GET(req: NextRequest) {
   const folderId = sp.get("folderId");
   const projectId = sp.get("projectId");
   const search = sp.get("search");
-  const type = sp.get("type") as DocumentType | null;
+  const typeParam = sp.get("type");
+  const types = typeParam ? (typeParam.split(",") as DocumentType[]) : null;
   const status = sp.get("status") as DocumentStatus | null;
   const discipline = sp.get("discipline") as Discipline | null;
   const sortBy = sp.get("sortBy") ?? "createdAt";
   const sortDir = (sp.get("sortDir") ?? "desc") as "asc" | "desc";
+  const deletedOnly = sp.get("deleted") === "true";
 
   const where: Prisma.DocumentWhereInput = {
+    deletedAt: deletedOnly ? { not: null } : null,
     ...(projectId ? { projectId } : {}),
     ...(folderId ? { folderId } : {}),
-    ...(type ? { type } : {}),
+    ...(types ? (types.length > 1 ? { type: { in: types } } : { type: types[0] }) : {}),
     ...(status ? { status } : {}),
     ...(discipline ? { discipline } : {}),
     ...(search

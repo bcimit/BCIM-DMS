@@ -43,6 +43,7 @@ async function uploadFile(
   projectId: string,
   folderId: string | null,
   discipline: string,
+  forcedType: string | undefined,
   onProgress: (pct: number) => void
 ) {
   return new Promise<void>((resolve, reject) => {
@@ -73,6 +74,7 @@ async function uploadFile(
     formData.append("projectId", projectId);
     if (folderId) formData.append("folderId", folderId);
     formData.append("discipline", discipline);
+    if (forcedType) formData.append("type", forcedType);
     xhr.send(formData);
   });
 }
@@ -82,11 +84,15 @@ export function UploadDialog({
   onOpenChange,
   projectId,
   folderId,
+  forcedType,
+  forcedDiscipline,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   projectId: string;
   folderId: string | null;
+  forcedType?: string;
+  forcedDiscipline?: string;
 }) {
   const [items, setItems] = React.useState<UploadItem[]>([]);
   const [discipline, setDiscipline] = React.useState<string | undefined>();
@@ -112,7 +118,8 @@ export function UploadDialog({
   const anyPending = items.some((i) => i.status === "pending");
 
   async function handleUploadAll() {
-    if (!discipline) {
+    const effectiveDiscipline = forcedDiscipline ?? discipline;
+    if (!effectiveDiscipline) {
       toast.error("Select a discipline before uploading");
       return;
     }
@@ -124,7 +131,7 @@ export function UploadDialog({
         .filter((it) => it.status === "pending" || it.status === "uploading")
         .map(async (it) => {
           try {
-            await uploadFile(it.file, projectId, folderId, discipline, (pct) => {
+            await uploadFile(it.file, projectId, folderId, effectiveDiscipline, forcedType, (pct) => {
               setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, progress: pct } : p)));
             });
             setItems((prev) => prev.map((p) => (p.id === it.id ? { ...p, status: "done", progress: 100 } : p)));
@@ -172,6 +179,7 @@ export function UploadDialog({
           <DialogTitle>Upload Documents</DialogTitle>
         </DialogHeader>
 
+        {!forcedDiscipline && (
         <div className="space-y-1.5">
           <Label htmlFor="upload-discipline">Discipline</Label>
           <Select value={discipline} onValueChange={setDiscipline}>
@@ -187,6 +195,7 @@ export function UploadDialog({
             </SelectContent>
           </Select>
         </div>
+        )}
 
         <div
           {...getRootProps()}

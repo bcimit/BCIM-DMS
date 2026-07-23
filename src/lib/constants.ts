@@ -26,3 +26,22 @@ export const DISCIPLINES = [
   { value: "QAQC", label: "QAQC" },
   { value: "SAFETY", label: "Safety" },
 ];
+
+export const USER_ROLES = [
+  { value: "SUPER_ADMIN", label: "Super Admin" },
+  { value: "PROJECT_DIRECTOR", label: "Project Director" },
+  { value: "PROJECT_MANAGER", label: "Project Manager" },
+  { value: "DOCUMENT_CONTROLLER", label: "Document Controller" },
+  { value: "QAQC_ENGINEER", label: "QAQC Engineer" },
+  { value: "SITE_ENGINEER", label: "Site Engineer" },
+  { value: "PLANNING_ENGINEER", label: "Planning Engineer" },
+  { value: "PURCHASE_MANAGER", label: "Purchase Manager" },
+  { value: "STORE_MANAGER", label: "Store Manager" },
+  { value: "SAFETY_OFFICER", label: "Safety Officer" },
+  { value: "HR", label: "HR" },
+  { value: "FINANCE", label: "Finance" },
+  { value: "CLIENT", label: "Client" },
+  { value: "CONSULTANT", label: "Consultant" },
+  { value: "VENDOR", label: "Vendor" },
+  { value: "SUB_CONTRACTOR", label: "Sub Contractor" },
+];

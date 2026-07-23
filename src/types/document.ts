@@ -20,6 +20,7 @@ export type DocumentListItem = {
   uploadedById: string;
   createdAt: string;
   updatedAt: string;
+  deletedAt: string | null;
   uploadedBy: { id: string; name: string; avatarUrl: string | null };
   category: { name: string } | null;
   folder: { id: string; name: string; path: string } | null;

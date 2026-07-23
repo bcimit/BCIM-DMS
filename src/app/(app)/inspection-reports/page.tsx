@@ -1,5 +1,19 @@
-import { ComingSoon } from "@/components/layout/coming-soon";
+import { FilteredDocumentPage } from "@/components/documents/filtered-document-page";
 
-export default function InspectionReportsPage() {
-  return <ComingSoon title="Inspection Reports" subtitle="Site inspection reports and findings" />;
+export const dynamic = "force-dynamic";
+
+export default async function InspectionReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ project?: string }>;
+}) {
+  const { project } = await searchParams;
+  return (
+    <FilteredDocumentPage
+      title="Inspection Reports"
+      subtitle="Site inspection reports and findings"
+      projectIdParam={project}
+      lockedType="REPORT"
+    />
+  );
 }

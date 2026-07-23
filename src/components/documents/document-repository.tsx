@@ -15,7 +15,17 @@ import { useFolders } from "@/hooks/use-folders";
 import { useDocuments } from "@/hooks/use-documents";
 import type { DocumentListItem } from "@/types/document";
 
-export function DocumentRepository({ projectId }: { projectId: string }) {
+export function DocumentRepository({
+  projectId,
+  title = "Document Repository",
+  lockedType,
+  lockedDiscipline,
+}: {
+  projectId: string;
+  title?: string;
+  lockedType?: string;
+  lockedDiscipline?: string;
+}) {
   const [folderId, setFolderId] = React.useState<string | null>(null);
   const [view, setView] = React.useState<ViewMode>("list");
   const [type, setType] = React.useState<string | undefined>();
@@ -40,9 +50,9 @@ export function DocumentRepository({ projectId }: { projectId: string }) {
   const documentsQuery = useDocuments({
     projectId,
     folderId,
-    type,
+    type: lockedType ?? type,
     status,
-    discipline,
+    discipline: lockedDiscipline ?? discipline,
     search: debouncedSearch,
     page,
   });
@@ -64,7 +74,7 @@ export function DocumentRepository({ projectId }: { projectId: string }) {
       <div className="glass-panel rounded-2xl p-4 lg:p-5 flex-1 min-w-0 space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="space-y-1 min-w-0">
-            <h2 className="text-lg font-semibold">Document Repository</h2>
+            <h2 className="text-lg font-semibold">{title}</h2>
             <BreadcrumbNav
               projectName={foldersQuery.data?.project?.name ?? "Project"}
               crumbs={foldersQuery.data?.breadcrumb ?? []}
@@ -80,6 +90,8 @@ export function DocumentRepository({ projectId }: { projectId: string }) {
           discipline={discipline}
           search={search}
           view={view}
+          hideType={!!lockedType}
+          hideDiscipline={!!lockedDiscipline}
           onTypeChange={resetFilter(setType)}
           onStatusChange={resetFilter(setStatus)}
           onDisciplineChange={resetFilter(setDiscipline)}
@@ -121,6 +133,8 @@ export function DocumentRepository({ projectId }: { projectId: string }) {
         onOpenChange={setUploadOpen}
         projectId={projectId}
         folderId={folderId}
+        forcedType={lockedType?.split(",")[0]}
+        forcedDiscipline={lockedDiscipline}
       />
       <CreateFolderDialog open={createFolderOpen} onOpenChange={setCreateFolderOpen} />
     </div>
