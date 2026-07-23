@@ -19,6 +19,7 @@ export type ErpWorkOrder = {
   createdBy?: string;
   status: string;
   fileUrl?: string;
+  pdfUrl?: string | null;
   updatedAt: string;
 };
 
@@ -33,6 +34,7 @@ export type ErpPurchaseOrder = {
   approvedAt?: string;
   status: string;
   fileUrl?: string;
+  pdfUrl?: string | null;
   updatedAt: string;
 };
 
@@ -50,8 +52,27 @@ export type ErpMrs = {
   approvedAt?: string;
   items?: { materialName: string; quantity: number; unit: string; purpose?: string }[];
   fileUrl?: string;
+  pdfUrl?: string | null;
   updatedAt: string;
 };
+
+export type ErpPdf = { bytes: Buffer; contentType: string } | null;
+
+export async function downloadErpPdf(pdfUrl: string): Promise<ErpPdf> {
+  if (!API_KEY) {
+    throw new Error("ERP_API_KEY is not configured");
+  }
+  const res = await fetch(pdfUrl, { headers: { Authorization: `Bearer ${API_KEY}` } });
+  if (res.status === 404 || res.status === 410) {
+    return null;
+  }
+  if (!res.ok) {
+    throw new Error(`ERP PDF download failed: ${res.status} ${await res.text()}`);
+  }
+  const bytes = Buffer.from(await res.arrayBuffer());
+  const contentType = res.headers.get("content-type") ?? "application/pdf";
+  return { bytes, contentType };
+}
 
 export async function pingErp(): Promise<{ ok: boolean; companyId: string; scopes: string[] }> {
   const res = await erpFetch("/ping");

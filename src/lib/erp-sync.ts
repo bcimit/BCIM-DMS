@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { notifyAdmins } from "@/lib/notify";
-import { fetchApprovedWorkOrders, fetchApprovedPurchaseOrders, fetchApprovedMrs } from "@/lib/erp-client";
+import {
+  fetchApprovedWorkOrders,
+  fetchApprovedPurchaseOrders,
+  fetchApprovedMrs,
+  downloadErpPdf,
+} from "@/lib/erp-client";
+import { uploadToSharePoint } from "@/lib/graph";
 import { ActivityAction, DocumentStatus, DocumentType, Discipline, UserRole } from "@/generated/prisma/client";
 
 const DEFAULT_LOOKBACK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -61,6 +67,29 @@ async function setSince(key: string, date: Date) {
   });
 }
 
+async function resolveErpFile(
+  documentNo: string,
+  fileName: string,
+  pdfUrl: string | null | undefined,
+  fallbackUrl: string | undefined
+): Promise<{ fileUrl: string; storageItemId: string | null; sizeBytes: number } | null> {
+  const existing = await prisma.document.findUnique({ where: { documentNo }, select: { id: true } });
+  if (existing) return null;
+
+  const fallback = { fileUrl: fallbackUrl ?? "https://erp.bcim.in", storageItemId: null, sizeBytes: 0 };
+  if (!pdfUrl) return fallback;
+
+  try {
+    const pdf = await downloadErpPdf(pdfUrl);
+    if (!pdf) return fallback;
+    const uploaded = await uploadToSharePoint(`${fileName}.pdf`, pdf.contentType, pdf.bytes);
+    return { fileUrl: uploaded.webUrl, storageItemId: uploaded.itemId, sizeBytes: pdf.bytes.length };
+  } catch (e) {
+    console.error(`Failed to fetch/store ERP PDF for ${documentNo}:`, e);
+    return fallback;
+  }
+}
+
 async function upsertSyncedDocument(params: {
   documentNo: string;
   name: string;
@@ -69,7 +98,7 @@ async function upsertSyncedDocument(params: {
   discipline: Discipline;
   projectId: string;
   folderId: string;
-  fileUrl?: string;
+  file: { fileUrl: string; storageItemId: string | null; sizeBytes: number } | null;
   uploaderId: string;
 }) {
   const existing = await prisma.document.findUnique({ where: { documentNo: params.documentNo } });
@@ -81,6 +110,8 @@ async function upsertSyncedDocument(params: {
     return { created: false, id: existing.id };
   }
 
+  const file = params.file ?? { fileUrl: "https://erp.bcim.in", storageItemId: null, sizeBytes: 0 };
+
   const document = await prisma.document.create({
     data: {
       documentNo: params.documentNo,
@@ -90,8 +121,9 @@ async function upsertSyncedDocument(params: {
       discipline: params.discipline,
       status: DocumentStatus.APPROVED,
       version: "V1",
-      sizeBytes: 0,
-      fileUrl: params.fileUrl ?? `https://erp.bcim.in`,
+      sizeBytes: file.sizeBytes,
+      fileUrl: file.fileUrl,
+      storageItemId: file.storageItemId,
       projectId: params.projectId,
       folderId: params.folderId,
       uploadedById: params.uploaderId,
@@ -137,6 +169,7 @@ export async function runErpSync(): Promise<{
       const { project, created: projectCreated } = await getOrCreateProject(wo.projectCode);
       if (projectCreated) projectsCreated.push(project.code);
       const folder = await getOrCreateFolderPath(project.id, ["Procurement", "Work Orders"]);
+      const file = await resolveErpFile(wo.workOrderNo, wo.workOrderNo, wo.pdfUrl, wo.fileUrl);
       const { created } = await upsertSyncedDocument({
         documentNo: wo.workOrderNo,
         name: `${wo.workOrderNo} - ${wo.title}`,
@@ -151,7 +184,7 @@ export async function runErpSync(): Promise<{
         discipline: Discipline.PROCUREMENT,
         projectId: project.id,
         folderId: folder!.id,
-        fileUrl: wo.fileUrl,
+        file,
         uploaderId: uploader.id,
       });
       if (created) result.workOrders++;
@@ -169,6 +202,7 @@ export async function runErpSync(): Promise<{
       const { project, created: projectCreated } = await getOrCreateProject(po.projectCode);
       if (projectCreated) projectsCreated.push(project.code);
       const folder = await getOrCreateFolderPath(project.id, ["Procurement", "Purchase Orders"]);
+      const file = await resolveErpFile(po.purchaseOrderNo, po.purchaseOrderNo, po.pdfUrl, po.fileUrl);
       const { created } = await upsertSyncedDocument({
         documentNo: po.purchaseOrderNo,
         name: `${po.purchaseOrderNo}${po.vendorName ? ` - ${po.vendorName}` : ""}`,
@@ -185,7 +219,7 @@ export async function runErpSync(): Promise<{
         discipline: Discipline.PROCUREMENT,
         projectId: project.id,
         folderId: folder!.id,
-        fileUrl: po.fileUrl,
+        file,
         uploaderId: uploader.id,
       });
       if (created) result.purchaseOrders++;
@@ -206,6 +240,7 @@ export async function runErpSync(): Promise<{
       const itemsList = mrs.items
         ?.map((i) => `${i.materialName} (${i.quantity} ${i.unit}${i.purpose ? ` — ${i.purpose}` : ""})`)
         .join(", ");
+      const file = await resolveErpFile(mrs.mrsNo, mrs.mrsNo, mrs.pdfUrl, mrs.fileUrl);
       const { created } = await upsertSyncedDocument({
         documentNo: mrs.mrsNo,
         name: `${mrs.mrsNo}${mrs.remarks ? ` - ${mrs.remarks}` : ""}`,
@@ -222,7 +257,7 @@ export async function runErpSync(): Promise<{
         discipline: resolveDiscipline(mrs.department),
         projectId: project.id,
         folderId: folder!.id,
-        fileUrl: mrs.fileUrl,
+        file,
         uploaderId: uploader.id,
       });
       if (created) result.mrs++;
