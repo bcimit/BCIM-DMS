@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: bcim-dms-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bcim
+      POSTGRES_PASSWORD: bcim_dms_dev
+      POSTGRES_DB: bcim_dms
+    ports:
+      - "5433:5432"
+    volumes:
+      - bcim_dms_pgdata:/var/lib/postgresql/data
+
+volumes:
+  bcim_dms_pgdata:

@@ -1,0 +1,277 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum DocumentStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  REVIEWED
+  APPROVED
+  REJECTED
+  ARCHIVED
+  CANCELLED
+}
+
+enum DocumentType {
+  DRAWING
+  RFI
+  SUBMITTAL
+  TRANSMITTAL
+  CORRESPONDENCE
+  CONTRACT
+  BOQ
+  REPORT
+  OFFICE_FILE
+  CAD_DRAWING
+  IMAGE
+  VIDEO
+  OTHER
+}
+
+enum Discipline {
+  CIVIL
+  ARCHITECTURE
+  STRUCTURAL
+  MEP
+  ELECTRICAL
+  HVAC
+  PLUMBING
+  FIRE_FIGHTING
+  QAQC
+  SAFETY
+  PURCHASE
+  CONTRACTS
+  FINANCE
+  HR
+  ADMINISTRATION
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  PROJECT_DIRECTOR
+  PROJECT_MANAGER
+  DOCUMENT_CONTROLLER
+  QAQC_ENGINEER
+  SITE_ENGINEER
+  PLANNING_ENGINEER
+  PURCHASE_MANAGER
+  STORE_MANAGER
+  SAFETY_OFFICER
+  HR
+  FINANCE
+  CLIENT
+  CONSULTANT
+  VENDOR
+  SUB_CONTRACTOR
+}
+
+enum ActivityAction {
+  UPLOADED
+  APPROVED
+  REJECTED
+  SUBMITTED
+  COMMENTED
+  DOWNLOADED
+  DELETED
+  MOVED
+  RESTORED
+  VERSION_ADDED
+}
+
+enum RfiStatus {
+  OPEN
+  ANSWERED
+  CLOSED
+}
+
+enum RfiPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  avatarUrl    String?
+  role         UserRole @default(SITE_ENGINEER)
+  createdAt    DateTime @default(now())
+
+  uploadedDocuments Document[]         @relation("UploadedBy")
+  uploadedVersions  DocumentVersion[]  @relation("VersionUploadedBy")
+  approvals         DocumentApproval[] @relation("ApprovalActor")
+  activities        Activity[]
+  comments          Comment[]
+  raisedRfis        Rfi[]              @relation("RfiRaisedBy")
+  assignedRfis      Rfi[]              @relation("RfiAssignedTo")
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  location  String?
+  createdAt DateTime @default(now())
+
+  folders   Folder[]
+  documents Document[]
+  rfis      Rfi[]
+}
+
+model Folder {
+  id        String   @id @default(cuid())
+  name      String
+  path      String
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent   Folder?  @relation("FolderTree", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children Folder[] @relation("FolderTree")
+
+  documents Document[]
+
+  @@index([projectId, parentId])
+}
+
+model DocumentCategory {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  documents Document[]
+}
+
+model Document {
+  id           String         @id @default(cuid())
+  documentNo   String         @unique
+  name         String
+  description  String?
+  type         DocumentType
+  discipline   Discipline
+  status       DocumentStatus @default(DRAFT)
+  version      String         @default("V1")
+  building     String?
+  floor        String?
+  area         String?
+  sizeBytes    Int
+  fileUrl      String
+  thumbnailUrl String?
+  tags         String[]       @default([])
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  folderId String?
+  folder   Folder? @relation(fields: [folderId], references: [id], onDelete: SetNull)
+
+  categoryId String?
+  category   DocumentCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  uploadedById String
+  uploadedBy   User   @relation("UploadedBy", fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  versions   DocumentVersion[]
+  approvals  DocumentApproval[]
+  activities Activity[]
+  comments   Comment[]
+
+  @@index([projectId, discipline, status])
+  @@index([folderId])
+}
+
+model DocumentVersion {
+  id           String   @id @default(cuid())
+  documentId   String
+  document     Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  version      String
+  isMajor      Boolean  @default(false)
+  notes        String?
+  sizeBytes    Int
+  fileUrl      String
+  uploadedById String
+  uploadedBy   User     @relation("VersionUploadedBy", fields: [uploadedById], references: [id])
+  createdAt    DateTime @default(now())
+
+  @@index([documentId])
+}
+
+model DocumentApproval {
+  id         String         @id @default(cuid())
+  documentId String
+  document   Document       @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  status     DocumentStatus
+  comment    String?
+  actorId    String
+  actor      User           @relation("ApprovalActor", fields: [actorId], references: [id])
+  createdAt  DateTime       @default(now())
+
+  @@index([documentId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  documentId String
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id])
+  body       String
+  createdAt  DateTime @default(now())
+
+  @@index([documentId])
+}
+
+model Activity {
+  id         String         @id @default(cuid())
+  action     ActivityAction
+  documentId String?
+  document   Document?      @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  userId     String
+  user       User           @relation(fields: [userId], references: [id])
+  message    String
+  createdAt  DateTime       @default(now())
+
+  @@index([createdAt])
+}
+
+model Rfi {
+  id         String      @id @default(cuid())
+  rfiNo      String      @unique
+  subject    String
+  question   String
+  response   String?
+  discipline Discipline
+  priority   RfiPriority @default(MEDIUM)
+  status     RfiStatus   @default(OPEN)
+  dueDate    DateTime
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  raisedById String
+  raisedBy   User   @relation("RfiRaisedBy", fields: [raisedById], references: [id])
+
+  assignedToId String?
+  assignedTo   User?   @relation("RfiAssignedTo", fields: [assignedToId], references: [id])
+
+  createdAt  DateTime  @default(now())
+  answeredAt DateTime?
+  closedAt   DateTime?
+
+  @@index([projectId, status])
+}
