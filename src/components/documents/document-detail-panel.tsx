@@ -9,6 +9,7 @@ import { DocIcon, docTypeLabel } from "@/components/documents/doc-icon";
 import { StatusBadge } from "@/components/documents/status-badge";
 import { useDocument } from "@/hooks/use-document";
 import { formatBytes, formatDateTime } from "@/lib/format";
+import { OfficePreview } from "@/components/documents/office-preview";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -111,6 +112,8 @@ export function DocumentDetailPanel({
                       <PdfPreview
                         fileUrl={doc.storageItemId ? `/api/documents/${doc.id}/content` : doc.fileUrl}
                       />
+                    ) : doc.storageItemId ? (
+                      <OfficePreview documentId={doc.id} />
                     ) : (
                       <div className="rounded-xl border border-border bg-muted/40 aspect-[4/3] flex flex-col items-center justify-center gap-2 text-muted-foreground">
                         <DocIcon fileName={doc.name} className="size-12" />

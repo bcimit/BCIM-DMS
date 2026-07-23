@@ -104,6 +104,20 @@ export async function getFreshDownloadUrl(itemId: string): Promise<string> {
   return item["@microsoft.graph.downloadUrl"];
 }
 
+export async function getPreviewEmbedUrl(itemId: string): Promise<string> {
+  const driveId = await getDriveId();
+  const res = await graphFetch(`/drives/${driveId}/items/${itemId}/preview`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{}",
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to fetch preview URL: ${res.status} ${await res.text()}`);
+  }
+  const data = await res.json();
+  return data.getUrl;
+}
+
 export type DriveQuota = {
   used: number;
   total: number;
