@@ -53,6 +53,10 @@ enum Discipline {
   FINANCE
   HR
   ADMINISTRATION
+  QS
+  IT
+  PLANNING
+  PROCUREMENT
 }
 
 enum UserRole {

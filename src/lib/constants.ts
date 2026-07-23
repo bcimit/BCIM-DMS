@@ -30,6 +30,10 @@ export const DISCIPLINES = [
   { value: "FINANCE", label: "Finance" },
   { value: "HR", label: "HR" },
   { value: "ADMINISTRATION", label: "Administration" },
+  { value: "QS", label: "QS (Quantity Surveying)" },
+  { value: "IT", label: "IT" },
+  { value: "PLANNING", label: "Planning" },
+  { value: "PROCUREMENT", label: "Procurement" },
 ];
 
 export const USER_ROLES = [
