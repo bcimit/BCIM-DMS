@@ -29,6 +29,18 @@ async function getOrCreateFolderPath(projectId: string, segments: string[]) {
   return folder;
 }
 
+async function getOrCreateProject(code: string, name?: string) {
+  const existing = await prisma.project.findUnique({ where: { code } });
+  if (existing) return { project: existing, created: false };
+
+  const project = await prisma.project.create({
+    data: { name: name?.trim() || code, code },
+  });
+  await prisma.folder.create({ data: { name: "Construction", path: "/Construction", projectId: project.id } });
+
+  return { project, created: true };
+}
+
 async function getSystemUploader() {
   return (
     (await prisma.user.findFirst({ where: { role: UserRole.SUPER_ADMIN } })) ??
@@ -98,10 +110,17 @@ async function upsertSyncedDocument(params: {
   return { created: true, id: document.id };
 }
 
-export async function runErpSync(): Promise<{ workOrders: number; purchaseOrders: number; mrs: number; errors: string[] }> {
+export async function runErpSync(): Promise<{
+  workOrders: number;
+  purchaseOrders: number;
+  mrs: number;
+  projectsCreated: string[];
+  errors: string[];
+}> {
   const uploader = await getSystemUploader();
   const errors: string[] = [];
-  const result = { workOrders: 0, purchaseOrders: 0, mrs: 0, errors };
+  const projectsCreated: string[] = [];
+  const result = { workOrders: 0, purchaseOrders: 0, mrs: 0, projectsCreated, errors };
 
   if (!uploader) {
     errors.push("No admin user available to attribute synced documents to");
@@ -114,8 +133,8 @@ export async function runErpSync(): Promise<{ workOrders: number; purchaseOrders
     const since = await getSince("work-orders");
     const workOrders = await fetchApprovedWorkOrders(since);
     for (const wo of workOrders) {
-      const project = await prisma.project.findUnique({ where: { code: wo.projectCode } });
-      if (!project) continue;
+      const { project, created: projectCreated } = await getOrCreateProject(wo.projectCode);
+      if (projectCreated) projectsCreated.push(project.code);
       const folder = await getOrCreateFolderPath(project.id, ["Procurement", "Work Orders"]);
       const { created } = await upsertSyncedDocument({
         documentNo: wo.workOrderNo,
@@ -123,7 +142,7 @@ export async function runErpSync(): Promise<{ workOrders: number; purchaseOrders
         description: [
           wo.vendorName ? `Vendor: ${wo.vendorName}` : null,
           wo.amount ? `Amount: ${wo.amount.toLocaleString()}` : null,
-          wo.approvedBy ? `Approved by: ${wo.approvedBy}` : null,
+          wo.createdBy ? `Created by: ${wo.createdBy}` : null,
         ]
           .filter(Boolean)
           .join(" · "),
@@ -145,16 +164,17 @@ export async function runErpSync(): Promise<{ workOrders: number; purchaseOrders
     const since = await getSince("purchase-orders");
     const purchaseOrders = await fetchApprovedPurchaseOrders(since);
     for (const po of purchaseOrders) {
-      const project = await prisma.project.findUnique({ where: { code: po.projectCode } });
-      if (!project) continue;
+      const { project, created: projectCreated } = await getOrCreateProject(po.projectCode);
+      if (projectCreated) projectsCreated.push(project.code);
       const folder = await getOrCreateFolderPath(project.id, ["Procurement", "Purchase Orders"]);
       const { created } = await upsertSyncedDocument({
         documentNo: po.purchaseOrderNo,
-        name: `${po.purchaseOrderNo} - ${po.title}`,
+        name: `${po.purchaseOrderNo}${po.vendorName ? ` - ${po.vendorName}` : ""}`,
         description: [
           po.vendorName ? `Vendor: ${po.vendorName}` : null,
           po.subTotal ? `Subtotal: ${po.subTotal.toLocaleString()}` : null,
           po.totalGst ? `GST: ${po.totalGst.toLocaleString()}` : null,
+          po.amount ? `Total: ${po.amount.toLocaleString()}` : null,
           po.approvedBy ? `Approved by: ${po.approvedBy}` : null,
         ]
           .filter(Boolean)
@@ -177,15 +197,18 @@ export async function runErpSync(): Promise<{ workOrders: number; purchaseOrders
     const since = await getSince("mrs");
     const mrsList = await fetchApprovedMrs(since);
     for (const mrs of mrsList) {
-      const project = await prisma.project.findUnique({ where: { code: mrs.projectCode } });
-      if (!project) continue;
+      const { project, created: projectCreated } = await getOrCreateProject(mrs.projectCode, mrs.projectName);
+      if (projectCreated) projectsCreated.push(project.code);
       const folder = await getOrCreateFolderPath(project.id, ["Procurement", "Material Requisitions"]);
-      const itemsList = mrs.items?.map((i) => `${i.materialName} (${i.quantity} ${i.unit})`).join(", ");
+      const itemsList = mrs.items
+        ?.map((i) => `${i.materialName} (${i.quantity} ${i.unit}${i.purpose ? ` — ${i.purpose}` : ""})`)
+        .join(", ");
       const { created } = await upsertSyncedDocument({
         documentNo: mrs.mrsNo,
-        name: `${mrs.mrsNo} - ${mrs.purpose}`,
+        name: `${mrs.mrsNo}${mrs.remarks ? ` - ${mrs.remarks}` : ""}`,
         description: [
           mrs.department ? `Department: ${mrs.department}` : null,
+          mrs.priority ? `Priority: ${mrs.priority}` : null,
           mrs.requestedBy ? `Requested by: ${mrs.requestedBy}` : null,
           mrs.approvedBy ? `Approved by: ${mrs.approvedBy}` : null,
           itemsList ? `Items: ${itemsList}` : null,
@@ -207,10 +230,14 @@ export async function runErpSync(): Promise<{ workOrders: number; purchaseOrders
   }
 
   const totalCreated = result.workOrders + result.purchaseOrders + result.mrs;
-  if (totalCreated > 0) {
+  if (totalCreated > 0 || projectsCreated.length > 0) {
+    const projectNote =
+      projectsCreated.length > 0
+        ? ` New project(s) auto-created for unmapped ERP codes: ${projectsCreated.join(", ")}.`
+        : "";
     await notifyAdmins(
       "ERP sync: new procurement documents",
-      `Synced from ERP: ${result.workOrders} work order(s), ${result.purchaseOrders} purchase order(s), ${result.mrs} material requisition(s).`,
+      `Synced from ERP: ${result.workOrders} work order(s), ${result.purchaseOrders} purchase order(s), ${result.mrs} material requisition(s).${projectNote}`,
       "/documents"
     );
   }
