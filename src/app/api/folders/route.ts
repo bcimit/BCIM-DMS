@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { notifyAdmins } from "@/lib/notify";
 
 async function buildBreadcrumb(folderId: string | null) {
   const chain: { id: string; name: string }[] = [];
@@ -89,6 +90,12 @@ export async function POST(req: NextRequest) {
   const folder = await prisma.folder.create({
     data: { projectId, parentId: parentId ?? null, name: trimmedName, path },
   });
+
+  await notifyAdmins(
+    "New folder created",
+    `${session.user.name} created folder <strong>${path}</strong>.`,
+    `/documents?project=${projectId}`
+  );
 
   return NextResponse.json({ data: folder });
 }
