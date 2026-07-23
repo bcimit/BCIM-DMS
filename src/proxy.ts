@@ -2,6 +2,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
 export default async function proxy(req: NextRequest) {
+  if (req.nextUrl.pathname.startsWith("/api/webhooks/")) {
+    return NextResponse.next();
+  }
+
   const token = await getToken({
     req,
     secret: process.env.AUTH_SECRET,
