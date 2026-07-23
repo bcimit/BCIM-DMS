@@ -100,6 +100,26 @@ enum RfiPriority {
   CRITICAL
 }
 
+enum SubmittalStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  APPROVED
+  APPROVED_AS_NOTED
+  REVISE_RESUBMIT
+  REJECTED
+}
+
+enum SubmittalType {
+  SHOP_DRAWING
+  PRODUCT_DATA
+  SAMPLE
+  CERTIFICATE
+  TEST_REPORT
+  WARRANTY
+  OTHER
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
@@ -116,6 +136,8 @@ model User {
   comments          Comment[]
   raisedRfis        Rfi[]              @relation("RfiRaisedBy")
   assignedRfis      Rfi[]              @relation("RfiAssignedTo")
+  submittedSubmittals Submittal[]      @relation("SubmittalSubmittedBy")
+  reviewedSubmittals  Submittal[]      @relation("SubmittalReviewedBy")
 }
 
 model Project {
@@ -125,9 +147,10 @@ model Project {
   location  String?
   createdAt DateTime @default(now())
 
-  folders   Folder[]
-  documents Document[]
-  rfis      Rfi[]
+  folders     Folder[]
+  documents   Document[]
+  rfis        Rfi[]
+  submittals  Submittal[]
 }
 
 model Folder {
@@ -274,6 +297,34 @@ model Rfi {
   createdAt  DateTime  @default(now())
   answeredAt DateTime?
   closedAt   DateTime?
+
+  @@index([projectId, status])
+}
+
+model Submittal {
+  id            String          @id @default(cuid())
+  submittalNo   String          @unique
+  subject       String
+  description   String
+  specSection   String?
+  submittalType SubmittalType   @default(SHOP_DRAWING)
+  discipline    Discipline
+  status        SubmittalStatus @default(DRAFT)
+  revision      String          @default("Rev 0")
+  reviewComments String?
+  dueDate       DateTime
+
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  submittedById String
+  submittedBy   User   @relation("SubmittalSubmittedBy", fields: [submittedById], references: [id])
+
+  reviewedById String?
+  reviewedBy   User?   @relation("SubmittalReviewedBy", fields: [reviewedById], references: [id])
+
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
 
   @@index([projectId, status])
 }
