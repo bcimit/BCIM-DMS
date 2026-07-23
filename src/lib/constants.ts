@@ -6,6 +6,8 @@ export const DOCUMENT_TYPES = [
   { value: "TRANSMITTAL", label: "Transmittal" },
   { value: "OFFICE_FILE", label: "Office File" },
   { value: "WORK_ORDER", label: "Work Order" },
+  { value: "PURCHASE_ORDER", label: "Purchase Order" },
+  { value: "MATERIAL_REQUISITION", label: "Material Requisition" },
 ];
 
 export const DOCUMENT_STATUSES = [

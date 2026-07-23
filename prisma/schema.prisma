@@ -35,6 +35,8 @@ enum DocumentType {
   IMAGE
   VIDEO
   WORK_ORDER
+  PURCHASE_ORDER
+  MATERIAL_REQUISITION
   OTHER
 }
 
@@ -333,4 +335,10 @@ model Submittal {
   reviewedAt DateTime?
 
   @@index([projectId, status])
+}
+
+model IntegrationSyncState {
+  key          String   @id
+  lastSyncedAt DateTime
+  updatedAt    DateTime @updatedAt
 }
