@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { notifyAdmins } from "@/lib/notify";
 import { ActivityAction } from "@/generated/prisma/client";
 
 export async function POST(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -25,6 +26,12 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
       message: `${session.user.name} moved ${document.name} to Recycle Bin`,
     },
   });
+
+  await notifyAdmins(
+    "Document moved to Recycle Bin",
+    `${session.user.name} moved <strong>${document.name}</strong> to the Recycle Bin.`,
+    `/recycle-bin?project=${document.projectId}`
+  );
 
   return NextResponse.json({ success: true });
 }

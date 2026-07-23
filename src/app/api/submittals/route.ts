@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { notifyAdmins, notifyUser } from "@/lib/notify";
 import type { Prisma, Discipline, SubmittalStatus, SubmittalType } from "@/generated/prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -91,6 +92,13 @@ export async function POST(req: NextRequest) {
       reviewedBy: { select: { id: true, name: true } },
     },
   });
+
+  const link = `/submittals?project=${projectId}`;
+  if (submittal.reviewedBy) {
+    await notifyUser(submittal.reviewedBy.id, "New submittal assigned to you", `${submittal.submittedBy.name} raised submittal <strong>${submittal.subject}</strong> for your review.`, link);
+  } else {
+    await notifyAdmins("New submittal raised", `${submittal.submittedBy.name} raised submittal <strong>${submittal.subject}</strong>.`, link);
+  }
 
   return NextResponse.json({ data: submittal }, { status: 201 });
 }

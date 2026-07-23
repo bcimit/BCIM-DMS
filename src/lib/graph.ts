@@ -2,6 +2,7 @@ const TENANT_ID = process.env.ONEDRIVE_TENANT_ID!;
 const CLIENT_ID = process.env.ONEDRIVE_CLIENT_ID!;
 const CLIENT_SECRET = process.env.ONEDRIVE_CLIENT_SECRET!;
 const SITE_URL = process.env.SHAREPOINT_SITE_URL!;
+const SENDER_EMAIL = process.env.ONEDRIVE_USER_EMAIL!;
 const UPLOAD_FOLDER = "DMS-Uploads";
 
 let cachedToken: { value: string; expiresAt: number } | null = null;
@@ -130,6 +131,27 @@ export async function createShareLink(itemId: string): Promise<string> {
   }
   const data = await res.json();
   return data.link.webUrl;
+}
+
+export async function sendMail(to: string[], subject: string, htmlBody: string): Promise<void> {
+  if (to.length === 0) return;
+
+  const res = await graphFetch(`/users/${SENDER_EMAIL}/sendMail`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: {
+        subject,
+        body: { contentType: "HTML", content: htmlBody },
+        toRecipients: to.map((email) => ({ emailAddress: { address: email } })),
+      },
+      saveToSentItems: false,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to send mail: ${res.status} ${await res.text()}`);
+  }
 }
 
 export type DriveQuota = {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/permissions";
+import { notifyAdmins } from "@/lib/notify";
 import { DocumentStatus } from "@/generated/prisma/client";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -86,6 +87,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           : `${session.user.name} updated "${document.name}"`,
     },
   });
+
+  await notifyAdmins(
+    folderId !== undefined ? "Document moved" : "Document updated",
+    folderId !== undefined
+      ? `${session.user.name} moved <strong>${document.name}</strong>.`
+      : `${session.user.name} updated <strong>${document.name}</strong>.`,
+    `/documents?project=${document.projectId}`
+  );
 
   return NextResponse.json({ data: updated });
 }

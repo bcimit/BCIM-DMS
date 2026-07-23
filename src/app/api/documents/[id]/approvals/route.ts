@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { isAdminRole } from "@/lib/permissions";
+import { notifyAdmins, notifyUser } from "@/lib/notify";
 import { DocumentStatus } from "@/generated/prisma/client";
 
 const ALLOWED_TARGETS: DocumentStatus[] = [
@@ -49,6 +50,15 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       },
     }),
   ]);
+
+  const link = `/documents?project=${document.projectId}`;
+  if (status === DocumentStatus.APPROVED) {
+    await notifyUser(document.uploadedById, "Your document was approved", `<strong>${document.name}</strong> was approved by ${session.user.name}.`, link);
+  } else if (status === DocumentStatus.REJECTED) {
+    await notifyUser(document.uploadedById, "Your document was rejected", `<strong>${document.name}</strong> was rejected by ${session.user.name}.${comment ? ` Comment: ${comment}` : ""}`, link);
+  } else {
+    await notifyAdmins("Document pending approval", `${session.user.name} submitted <strong>${document.name}</strong> for review.`, link);
+  }
 
   return NextResponse.json({ data: updated });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { notifyAdmins } from "@/lib/notify";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await auth();
@@ -58,6 +59,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       message: `${session.user.name} copied "${source.name}"`,
     },
   });
+
+  await notifyAdmins(
+    "Document copied",
+    `${session.user.name} copied <strong>${source.name}</strong>.`,
+    `/documents?project=${source.projectId}`
+  );
 
   return NextResponse.json({ data: copy });
 }

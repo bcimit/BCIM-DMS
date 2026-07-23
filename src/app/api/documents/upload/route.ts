@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { inferDocumentType } from "@/lib/infer-document-type";
 import { uploadToSharePoint } from "@/lib/graph";
+import { notifyAdmins } from "@/lib/notify";
 import { ActivityAction, Discipline, DocumentStatus, DocumentType } from "@/generated/prisma/client";
 
 export async function POST(req: NextRequest) {
@@ -86,6 +87,12 @@ export async function POST(req: NextRequest) {
       message: `${uploader.name} uploaded ${document.name}`,
     },
   });
+
+  await notifyAdmins(
+    "New document uploaded",
+    `${uploader.name} uploaded <strong>${document.name}</strong>.`,
+    `/documents?project=${document.projectId}`
+  );
 
   return NextResponse.json({ data: document }, { status: 201 });
 }

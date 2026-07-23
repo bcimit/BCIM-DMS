@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { notifyUser } from "@/lib/notify";
 import { SubmittalStatus } from "@/generated/prisma/client";
 
 const REVIEWED_STATUSES: SubmittalStatus[] = [
@@ -59,6 +60,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       reviewedBy: { select: { id: true, name: true } },
     },
   });
+
+  if (status && REVIEWED_STATUSES.includes(status)) {
+    await notifyUser(
+      submittal.submittedBy.id,
+      "Your submittal was reviewed",
+      `Submittal <strong>${submittal.subject}</strong> was marked as ${status.replaceAll("_", " ").toLowerCase()} by ${session.user.name}.`,
+      `/submittals?project=${existing.projectId}`
+    );
+  }
 
   return NextResponse.json({ data: submittal });
 }

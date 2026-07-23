@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { notifyAdmins, notifyUser } from "@/lib/notify";
 import type { Prisma, Discipline, RfiPriority, RfiStatus } from "@/generated/prisma/client";
 
 export async function GET(req: NextRequest) {
@@ -90,6 +91,13 @@ export async function POST(req: NextRequest) {
       assignedTo: { select: { id: true, name: true } },
     },
   });
+
+  const link = `/rfi?project=${projectId}`;
+  if (rfi.assignedTo) {
+    await notifyUser(rfi.assignedTo.id, "New RFI assigned to you", `${rfi.raisedBy.name} raised RFI <strong>${rfi.subject}</strong> and assigned it to you.`, link);
+  } else {
+    await notifyAdmins("New RFI raised", `${rfi.raisedBy.name} raised RFI <strong>${rfi.subject}</strong>.`, link);
+  }
 
   return NextResponse.json({ data: rfi }, { status: 201 });
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { notifyUser } from "@/lib/notify";
 import { RfiStatus } from "@/generated/prisma/client";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -51,6 +52,22 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       assignedTo: { select: { id: true, name: true } },
     },
   });
+
+  if (status === RfiStatus.ANSWERED) {
+    await notifyUser(
+      rfi.raisedBy.id,
+      "Your RFI was answered",
+      `RFI <strong>${rfi.subject}</strong> was answered by ${rfi.assignedTo?.name ?? "the assignee"}.`,
+      `/rfi?project=${existing.projectId}`
+    );
+  } else if (status === RfiStatus.CLOSED) {
+    await notifyUser(
+      rfi.raisedBy.id,
+      "Your RFI was closed",
+      `RFI <strong>${rfi.subject}</strong> was closed.`,
+      `/rfi?project=${existing.projectId}`
+    );
+  }
 
   return NextResponse.json({ data: rfi });
 }
