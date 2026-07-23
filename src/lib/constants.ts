@@ -5,6 +5,7 @@ export const DOCUMENT_TYPES = [
   { value: "SUBMITTAL", label: "Submittal" },
   { value: "TRANSMITTAL", label: "Transmittal" },
   { value: "OFFICE_FILE", label: "Office File" },
+  { value: "WORK_ORDER", label: "Work Order" },
 ];
 
 export const DOCUMENT_STATUSES = [

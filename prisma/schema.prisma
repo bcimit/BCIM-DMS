@@ -34,6 +34,7 @@ enum DocumentType {
   CAD_DRAWING
   IMAGE
   VIDEO
+  WORK_ORDER
   OTHER
 }
 
