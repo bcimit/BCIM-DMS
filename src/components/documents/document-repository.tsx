@@ -136,7 +136,12 @@ export function DocumentRepository({
         forcedType={lockedType?.split(",")[0]}
         forcedDiscipline={lockedDiscipline}
       />
-      <CreateFolderDialog open={createFolderOpen} onOpenChange={setCreateFolderOpen} />
+      <CreateFolderDialog
+        open={createFolderOpen}
+        onOpenChange={setCreateFolderOpen}
+        projectId={projectId}
+        parentId={folderId}
+      />
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/auth";
 
 async function buildBreadcrumb(folderId: string | null) {
   const chain: { id: string; name: string }[] = [];
@@ -38,4 +39,46 @@ export async function GET(req: NextRequest) {
   ]);
 
   return NextResponse.json({ project, children, breadcrumb, documentCount });
+}
+
+export async function POST(req: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await req.json();
+  const { projectId, parentId, name } = body as {
+    projectId?: string;
+    parentId?: string | null;
+    name?: string;
+  };
+
+  if (!projectId || !name?.trim()) {
+    return NextResponse.json({ error: "projectId and name are required" }, { status: 400 });
+  }
+
+  const parent = parentId
+    ? await prisma.folder.findUnique({ where: { id: parentId }, select: { path: true } })
+    : null;
+
+  if (parentId && !parent) {
+    return NextResponse.json({ error: "Parent folder not found" }, { status: 404 });
+  }
+
+  const trimmedName = name.trim();
+  const path = parent ? `${parent.path}/${trimmedName}` : `/${trimmedName}`;
+
+  const existing = await prisma.folder.findFirst({
+    where: { projectId, parentId: parentId ?? null, name: trimmedName },
+  });
+  if (existing) {
+    return NextResponse.json({ error: "A folder with this name already exists here" }, { status: 409 });
+  }
+
+  const folder = await prisma.folder.create({
+    data: { projectId, parentId: parentId ?? null, name: trimmedName, path },
+  });
+
+  return NextResponse.json({ data: folder });
 }
