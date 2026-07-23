@@ -66,12 +66,9 @@ export async function fetchApprovedWorkOrders(since: Date): Promise<ErpWorkOrder
 }
 
 export async function fetchApprovedPurchaseOrders(since: Date): Promise<ErpPurchaseOrder[]> {
-  const url = `/purchase-orders?status=approved&since=${since.toISOString()}&limit=1000`;
-  const res = await erpFetch(url);
-  const text = await res.text();
-  console.log(`ERP purchase-orders raw: url=${BASE_URL}${url} status=${res.status} body=${text.slice(0, 500)}`);
-  if (!res.ok) throw new Error(`ERP purchase-orders fetch failed: ${res.status} ${text}`);
-  return JSON.parse(text);
+  const res = await erpFetch(`/purchase-orders?status=approved&since=${since.toISOString()}&limit=1000`);
+  if (!res.ok) throw new Error(`ERP purchase-orders fetch failed: ${res.status} ${await res.text()}`);
+  return res.json();
 }
 
 export async function fetchApprovedMrs(since: Date): Promise<ErpMrs[]> {
