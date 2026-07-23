@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { PageHeader } from "@/components/layout/page-header";
 import { ProfileForm } from "@/components/settings/profile-form";
 import { UserManagementTable } from "@/components/settings/user-management-table";
+import { ErpSyncPanel } from "@/components/settings/erp-sync-panel";
 import { isAdminRole } from "@/lib/permissions";
 
 export default async function SettingsPage() {
@@ -25,6 +26,17 @@ export default async function SettingsPage() {
             and Document Controllers can access this section.
           </p>
           <UserManagementTable />
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="glass-panel rounded-2xl p-5">
+          <h2 className="text-lg font-semibold mb-1">ERP Sync</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Automatically pulls approved Work Orders, Purchase Orders, and Material Requisitions from ConstructERP
+            every 10 minutes.
+          </p>
+          <ErpSyncPanel />
         </div>
       )}
     </div>
