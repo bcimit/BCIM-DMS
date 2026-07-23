@@ -2,6 +2,7 @@
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocIcon, docTypeLabel } from "@/components/documents/doc-icon";
 import { StatusBadge } from "@/components/documents/status-badge";
@@ -22,15 +23,32 @@ export function DocumentTable({
   documents,
   isLoading,
   onRowClick,
+  selectedIds,
+  onSelectionChange,
 }: {
   documents: DocumentListItem[];
   isLoading: boolean;
   onRowClick: (doc: DocumentListItem) => void;
+  selectedIds: string[];
+  onSelectionChange: (ids: string[]) => void;
 }) {
+  const allSelected = documents.length > 0 && selectedIds.length === documents.length;
+
+  function toggleAll() {
+    onSelectionChange(allSelected ? [] : documents.map((d) => d.id));
+  }
+
+  function toggleOne(id: string) {
+    onSelectionChange(selectedIds.includes(id) ? selectedIds.filter((i) => i !== id) : [...selectedIds, id]);
+  }
+
   return (
     <Table>
       <TableHeader>
         <TableRow className="hover:bg-transparent">
+          <TableHead className="w-10">
+            <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
+          </TableHead>
           <TableHead className="min-w-[260px]">Name</TableHead>
           <TableHead>Discipline</TableHead>
           <TableHead>Version</TableHead>
@@ -45,7 +63,7 @@ export function DocumentTable({
         {isLoading &&
           Array.from({ length: 8 }).map((_, i) => (
             <TableRow key={i}>
-              <TableCell colSpan={8}>
+              <TableCell colSpan={9}>
                 <Skeleton className="h-10 w-full" />
               </TableCell>
             </TableRow>
@@ -53,7 +71,7 @@ export function DocumentTable({
 
         {!isLoading && documents.length === 0 && (
           <TableRow>
-            <TableCell colSpan={8} className="h-32 text-center text-muted-foreground whitespace-normal">
+            <TableCell colSpan={9} className="h-32 text-center text-muted-foreground whitespace-normal">
               No documents found in this folder.
             </TableCell>
           </TableRow>
@@ -62,6 +80,13 @@ export function DocumentTable({
         {!isLoading &&
           documents.map((doc) => (
             <TableRow key={doc.id} className="cursor-pointer" onClick={() => onRowClick(doc)}>
+              <TableCell onClick={(e) => e.stopPropagation()}>
+                <Checkbox
+                  checked={selectedIds.includes(doc.id)}
+                  onCheckedChange={() => toggleOne(doc.id)}
+                  aria-label={`Select ${doc.name}`}
+                />
+              </TableCell>
               <TableCell>
                 <div className="flex items-center gap-3">
                   <DocIcon fileName={doc.name} />
@@ -90,8 +115,8 @@ export function DocumentTable({
                 </div>
               </TableCell>
               <TableCell className="text-muted-foreground">{formatDate(doc.updatedAt)}</TableCell>
-              <TableCell className="text-right">
-                <RowActionsMenu onPreview={() => onRowClick(doc)} documentId={doc.id} documentName={doc.name} />
+              <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
+                <RowActionsMenu onPreview={() => onRowClick(doc)} documentId={doc.id} documentName={doc.name} projectId={doc.projectId} />
               </TableCell>
             </TableRow>
           ))}

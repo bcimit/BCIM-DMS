@@ -23,6 +23,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { useUIStore } from "@/store/ui-store";
 import { useProjects } from "@/hooks/use-projects";
+import { useNotifications } from "@/hooks/use-notifications";
 
 function initials(name: string) {
   return name
@@ -41,12 +42,6 @@ function roleLabel(role: string) {
     .join(" ");
 }
 
-const NOTIFICATIONS = [
-  { title: "STR_03_SECOND FLOOR PLAN.pdf is pending your approval", time: "5 min ago" },
-  { title: "Karthik S approved COLUMN SCHEDULE.xlsx", time: "2 hours ago" },
-  { title: "New RFI raised on Structural discipline", time: "Yesterday" },
-];
-
 export function Header() {
   const { resolvedTheme, setTheme } = useTheme();
   const pageTitle = useUIStore((s) => s.pageTitle);
@@ -60,6 +55,16 @@ export function Header() {
   const activeProjectId = searchParams.get("project") ?? projects[0]?.id ?? "";
   const { data: session } = useSession();
   const user = session?.user;
+  const { data: notificationsData } = useNotifications();
+  const notifications = notificationsData?.data ?? [];
+  const [searchValue, setSearchValue] = React.useState(searchParams.get("search") ?? "");
+
+  function runSearch() {
+    const params = new URLSearchParams();
+    if (activeProjectId) params.set("project", activeProjectId);
+    if (searchValue.trim()) params.set("search", searchValue.trim());
+    router.push(`/documents?${params.toString()}`);
+  }
 
   React.useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- standard next-themes hydration-safe mount check
@@ -101,7 +106,13 @@ export function Header() {
 
       <div className="relative hidden md:block w-full max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-        <Input placeholder="Search documents, projects, folders…" className="pl-9 bg-muted/50 border-transparent focus-visible:border-ring" />
+        <Input
+          placeholder="Search documents…"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && runSearch()}
+          className="pl-9 bg-muted/50 border-transparent focus-visible:border-ring"
+        />
       </div>
 
       <Select
@@ -141,20 +152,28 @@ export function Header() {
         <DropdownMenuTrigger asChild>
           <Button variant="ghost" size="icon" className="relative" aria-label="Notifications">
             <Bell className="size-5" />
-            <Badge className="absolute -top-1 -right-1 h-4.5 min-w-4.5 justify-center rounded-full bg-red-500 px-1 text-[10px] text-white border-2 border-background">
-              {NOTIFICATIONS.length}
-            </Badge>
+            {notifications.length > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-4.5 min-w-4.5 justify-center rounded-full bg-red-500 px-1 text-[10px] text-white border-2 border-background">
+                {notifications.length}
+              </Badge>
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-80">
           <DropdownMenuLabel>Notifications</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          {NOTIFICATIONS.map((n, i) => (
-            <DropdownMenuItem key={i} className="flex-col items-start gap-0.5 py-2.5">
-              <span className="text-sm leading-snug">{n.title}</span>
-              <span className="text-xs text-muted-foreground">{n.time}</span>
-            </DropdownMenuItem>
-          ))}
+          {notifications.length === 0 ? (
+            <p className="px-2 py-4 text-center text-sm text-muted-foreground">You&apos;re all caught up</p>
+          ) : (
+            notifications.map((n) => (
+              <DropdownMenuItem key={n.id} className="flex-col items-start gap-0.5 py-2.5" asChild>
+                <Link href={n.href}>
+                  <span className="text-sm leading-snug">{n.title}</span>
+                  <span className="text-xs text-muted-foreground">{n.time}</span>
+                </Link>
+              </DropdownMenuItem>
+            ))
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -176,8 +195,12 @@ export function Header() {
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>My Account</DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Profile</DropdownMenuItem>
-          <DropdownMenuItem>Settings</DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/settings">Profile</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/settings">Settings</Link>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem className="text-destructive" onSelect={() => signOut({ callbackUrl: "/login" })}>
             Log out

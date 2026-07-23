@@ -25,6 +25,11 @@ export const DISCIPLINES = [
   { value: "FIRE_FIGHTING", label: "Fire Fighting" },
   { value: "QAQC", label: "QAQC" },
   { value: "SAFETY", label: "Safety" },
+  { value: "PURCHASE", label: "Purchase" },
+  { value: "CONTRACTS", label: "Contracts" },
+  { value: "FINANCE", label: "Finance" },
+  { value: "HR", label: "HR" },
+  { value: "ADMINISTRATION", label: "Administration" },
 ];
 
 export const USER_ROLES = [

@@ -2,6 +2,7 @@
 
 import { FolderPlus, Upload, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,9 +14,23 @@ import {
 export function DocumentToolbar({
   onUpload,
   onCreateFolder,
+  onExport,
+  onBulkDownload,
+  onMove,
+  onCopy,
+  onArchive,
+  onDelete,
+  selectionCount,
 }: {
   onUpload: () => void;
   onCreateFolder: () => void;
+  onExport: () => void;
+  onBulkDownload: () => void;
+  onMove: () => void;
+  onCopy: () => void;
+  onArchive: () => void;
+  onDelete: () => void;
+  selectionCount: number;
 }) {
   return (
     <div className="flex items-center gap-2">
@@ -32,21 +47,25 @@ export function DocumentToolbar({
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="icon" aria-label="More actions">
+          <Button variant="outline" size="icon" className="relative" aria-label="More actions">
             <MoreHorizontal className="size-4" />
+            {selectionCount > 0 && (
+              <Badge className="absolute -top-1.5 -right-1.5 h-4.5 min-w-4.5 justify-center rounded-full bg-blue-600 px-1 text-[10px] text-white">
+                {selectionCount}
+              </Badge>
+            )}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem>Import</DropdownMenuItem>
-          <DropdownMenuItem>Export</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onExport}>Export filtered list (CSV)</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onBulkDownload}>Download selected ({selectionCount})</DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>Bulk Upload</DropdownMenuItem>
-          <DropdownMenuItem>Bulk Download</DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem>Move</DropdownMenuItem>
-          <DropdownMenuItem>Copy</DropdownMenuItem>
-          <DropdownMenuItem>Archive</DropdownMenuItem>
-          <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onMove}>Move selected</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onCopy}>Copy selected</DropdownMenuItem>
+          <DropdownMenuItem onSelect={onArchive}>Archive selected</DropdownMenuItem>
+          <DropdownMenuItem className="text-destructive" onSelect={onDelete}>
+            Delete selected
+          </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </div>

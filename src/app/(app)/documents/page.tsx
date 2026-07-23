@@ -11,9 +11,9 @@ export const dynamic = "force-dynamic";
 export default async function DocumentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ project?: string }>;
+  searchParams: Promise<{ project?: string; search?: string }>;
 }) {
-  const { project: projectIdParam } = await searchParams;
+  const { project: projectIdParam, search } = await searchParams;
 
   const project = projectIdParam
     ? await prisma.project.findUnique({ where: { id: projectIdParam }, select: { id: true } })
@@ -33,7 +33,7 @@ export default async function DocumentsPage({
 
       <KpiRow projectId={project.id} />
 
-      <DocumentRepository key={project.id} projectId={project.id} />
+      <DocumentRepository key={`${project.id}-${search ?? ""}`} projectId={project.id} />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="glass-panel rounded-2xl p-5">

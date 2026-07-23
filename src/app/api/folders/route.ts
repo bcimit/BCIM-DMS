@@ -22,9 +22,19 @@ export async function GET(req: NextRequest) {
   const sp = req.nextUrl.searchParams;
   const projectId = sp.get("projectId");
   const folderId = sp.get("folderId");
+  const all = sp.get("all") === "true";
 
   if (!projectId) {
     return NextResponse.json({ error: "projectId is required" }, { status: 400 });
+  }
+
+  if (all) {
+    const folders = await prisma.folder.findMany({
+      where: { projectId },
+      orderBy: { path: "asc" },
+      select: { id: true, name: true, path: true },
+    });
+    return NextResponse.json({ data: folders });
   }
 
   const [project, children, breadcrumb, documentCount] = await Promise.all([

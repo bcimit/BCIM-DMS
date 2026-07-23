@@ -1,6 +1,9 @@
 "use client";
 
+import * as React from "react";
 import dynamic from "next/dynamic";
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Download, Eye, ChevronDown, FileStack, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +13,10 @@ import { StatusBadge } from "@/components/documents/status-badge";
 import { useDocument } from "@/hooks/use-document";
 import { formatBytes, formatDateTime } from "@/lib/format";
 import { OfficePreview } from "@/components/documents/office-preview";
+import { ShareDocumentDialog } from "@/components/documents/share-document-dialog";
+import { EditDocumentDialog } from "@/components/documents/edit-document-dialog";
+import { MoveDocumentDialog } from "@/components/documents/move-document-dialog";
+import { WorkflowDialog } from "@/components/documents/workflow-dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -47,6 +54,22 @@ export function DocumentDetailPanel({
 }) {
   const { data, isLoading } = useDocument(documentId);
   const doc = data?.data;
+  const queryClient = useQueryClient();
+  const [dialog, setDialog] = React.useState<"share" | "edit" | "move" | "workflow" | null>(null);
+
+  async function handleDelete() {
+    if (!documentId) return;
+    const res = await fetch(`/api/documents/${documentId}/delete`, { method: "POST" });
+    if (!res.ok) {
+      toast.error("Failed to delete document");
+      return;
+    }
+    toast.success(`"${doc?.name}" moved to Recycle Bin`);
+    queryClient.invalidateQueries({ queryKey: ["documents"] });
+    queryClient.invalidateQueries({ queryKey: ["stats"] });
+    queryClient.invalidateQueries({ queryKey: ["activities"] });
+    onClose();
+  }
 
   return (
     <AnimatePresence>
@@ -163,17 +186,34 @@ export function DocumentDetailPanel({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>Share</DropdownMenuItem>
-                    <DropdownMenuItem>Edit</DropdownMenuItem>
-                    <DropdownMenuItem>Move</DropdownMenuItem>
-                    <DropdownMenuItem>Workflow</DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setDialog("share")}>Share</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setDialog("edit")}>Edit</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setDialog("move")}>Move</DropdownMenuItem>
+                    <DropdownMenuItem onSelect={() => setDialog("workflow")}>Workflow</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive" onSelect={handleDelete}>
+                      Delete
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             )}
           </div>
         </motion.aside>
+      )}
+
+      {doc && (
+        <>
+          <ShareDocumentDialog open={dialog === "share"} onOpenChange={(v) => setDialog(v ? "share" : null)} documentId={doc.id} />
+          <EditDocumentDialog open={dialog === "edit"} onOpenChange={(v) => setDialog(v ? "edit" : null)} documentId={doc.id} />
+          <MoveDocumentDialog
+            open={dialog === "move"}
+            onOpenChange={(v) => setDialog(v ? "move" : null)}
+            projectId={doc.project.id}
+            documentIds={[doc.id]}
+            mode="move"
+          />
+          <WorkflowDialog open={dialog === "workflow"} onOpenChange={(v) => setDialog(v ? "workflow" : null)} documentId={doc.id} />
+        </>
       )}
     </AnimatePresence>
   );

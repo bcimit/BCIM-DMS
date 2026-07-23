@@ -118,6 +118,20 @@ export async function getPreviewEmbedUrl(itemId: string): Promise<string> {
   return data.getUrl;
 }
 
+export async function createShareLink(itemId: string): Promise<string> {
+  const driveId = await getDriveId();
+  const res = await graphFetch(`/drives/${driveId}/items/${itemId}/createLink`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "view", scope: "organization" }),
+  });
+  if (!res.ok) {
+    throw new Error(`Failed to create share link: ${res.status} ${await res.text()}`);
+  }
+  const data = await res.json();
+  return data.link.webUrl;
+}
+
 export type DriveQuota = {
   used: number;
   total: number;
